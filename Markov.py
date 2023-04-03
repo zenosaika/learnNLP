@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from pythainlp.corpus import thai_stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
+import random
 
 # [Import Corpus] - from https://aiforthai.in.th/corpus.php
 news = []
@@ -48,24 +47,32 @@ for i in range(len(docs)):
         for punctuation in punctuations:
             word = word.replace(punctuation, '')
 
-        stop_words = thai_stopwords()
-
-        if (word != '') and (word not in stop_words):
+        if word != '':
             new_doc.append(word)
 
     docs[i] = new_doc
 
-# [Calculate] - TF-IDF
-tfidf_vectorizer = TfidfVectorizer(analyzer='word',
-                                   tokenizer=lambda text: text,
-                                   preprocessor=lambda text: text,
-                                   token_pattern=None)
+# Markov Model
+graph = {}
 
-tfidf_vector = tfidf_vectorizer.fit_transform(docs[:100])
-tfidf_array = np.array(tfidf_vector.todense())
+for doc in docs[:100]:
+    prev = '<START>'
+    for word in doc+['<END>']:
+        if prev not in graph:
+            graph[prev] = [word]
+        else:
+            graph[prev].append(word)
+        prev = word
 
-tfidf_df = pd.DataFrame(tfidf_array, columns=tfidf_vectorizer.get_feature_names_out())
-top_tfidf_df = tfidf_df.apply(lambda r: r.nlargest(10).index.tolist(), axis=1).ravel()
-print(top_tfidf_df)
-
-print(len(docs))
+# Driver Code
+n = 15
+for j in range(30):
+    output = []
+    prev = '<START>'
+    for i in range(n):
+        word = random.choice(graph[prev])
+        if word == '<END>':
+            break
+        output.append(word)
+        prev = word
+    print(f'{j}) {"".join(output)}')
